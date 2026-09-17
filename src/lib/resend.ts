@@ -20,14 +20,17 @@ export async function sendTicketCreatedNotification(params: {
   title: string;
   category: string;
   priority: string;
+  githubUrl?: string;
 }) {
   if (!resend) {
     console.log(`[Resend Mock] Novo Ticket #${params.ticketId} enviado para cliente ${params.toEmail} e suporte`);
     return { success: true, mock: true };
   }
 
+  const ticketLink = params.githubUrl || `https://github.com/250k-dev/recomenda/issues/${params.ticketId}`;
+
   try {
-    // E-mail para o Cliente
+    // E-mail para o Cliente (Header Oficial ReportaDesk com Botão de Acesso Direto)
     await resend.emails.send({
       from: `ReportaDesk Suporte <${senderEmail}>`,
       to: [params.toEmail],
@@ -76,12 +79,18 @@ export async function sendTicketCreatedNotification(params: {
                 <td style="padding: 8px 0; font-weight: 600; text-transform: uppercase;">${params.priority}</td>
               </tr>
             </table>
+
+            <div style="margin-top: 24px; text-align: center;">
+              <a href="${ticketLink}" style="display: inline-block; background-color: #2F5BFF; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                🔗 Acessar Chamado #${params.ticketId}
+              </a>
+            </div>
           </div>
         </div>
       `,
     });
 
-    // E-mail para a Equipe de Suporte / Devs (vfidelisdev@gmail.com e leopoldinodev@gmail.com)
+    // E-mail para a Equipe de Suporte / Devs (Mesmo Header Padronizado Oficial)
     const supportEmails = getSupportEmails();
     if (supportEmails.length > 0) {
       await resend.emails.send({
@@ -89,14 +98,55 @@ export async function sendTicketCreatedNotification(params: {
         to: supportEmails,
         subject: `🚨 [Novo Chamado #${params.ticketId}] ${params.title} (${params.clientName})`,
         html: `
-          <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f8fafc;">
-            <div style="background: #0F1115; padding: 20px; border-radius: 12px; color: white;">
-              <h2 style="margin: 0; font-size: 18px; color: #D9F24A;">⚡ Novo Chamado Registrado no ReportaDesk</h2>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 12px;">
+            <div style="background: #0F1115; padding: 24px; border-radius: 12px; border: 1px solid #1E222A; margin-bottom: 24px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                <tr>
+                  <td style="vertical-align: middle; padding-right: 12px;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 38px; height: 38px; background-color: #2F5BFF; border-radius: 10px; text-align: center;">
+                      <tr>
+                        <td style="vertical-align: middle; text-align: center; width: 38px; height: 38px; line-height: 1;">
+                          <span style="display: inline-block; width: 6px; height: 6px; background-color: #D9F24A; border-radius: 50%; vertical-align: middle; margin-right: 2px;"></span>
+                          <span style="display: inline-block; width: 6px; height: 6px; background-color: #F7F7F4; border-radius: 50%; vertical-align: middle; margin-right: 2px;"></span>
+                          <span style="display: inline-block; width: 6px; height: 6px; background-color: #7E93FF; border-radius: 50%; vertical-align: middle;"></span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; color: #F7F7F4;">Reporta<strong style="color: #F7F7F4;">Desk</strong></span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin: 0; color: #D9F24A; font-size: 13px; font-weight: 600;">⚡ Alerta de Novo Chamado Registrado</p>
             </div>
-            <div style="background-color: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 16px;">
-              <p style="margin-top: 0; font-size: 14px;"><strong>Solicitante:</strong> ${params.clientName} (${params.toEmail})</p>
-              <p style="font-size: 14px;"><strong>Título:</strong> #${params.ticketId} - ${params.title}</p>
-              <p style="font-size: 14px;"><strong>Prioridade:</strong> <span style="color: #ef4444; font-weight: bold;">${params.priority.toUpperCase()}</span> | <strong>Categoria:</strong> ${params.category}</p>
+            
+            <div style="background-color: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+              <p style="margin-top: 0; font-size: 15px;">Atenção equipe de suporte / dev,</p>
+              <p style="font-size: 14px; line-height: 1.6; color: #475569;">
+                Um novo chamado <strong>#${params.ticketId}</strong> foi registrado por <strong>${params.clientName}</strong> (${params.toEmail}).
+              </p>
+
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px;">
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 8px 0; color: #64748b;">Título:</td>
+                  <td style="padding: 8px 0; font-weight: 600;">${params.title}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                  <td style="padding: 8px 0; color: #64748b;">Categoria:</td>
+                  <td style="padding: 8px 0; font-weight: 600; text-transform: capitalize;">${params.category}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #64748b;">Prioridade:</td>
+                  <td style="padding: 8px 0; font-weight: 600; text-transform: uppercase; color: #ef4444;">${params.priority}</td>
+                </tr>
+              </table>
+
+              <div style="margin-top: 24px; text-align: center;">
+                <a href="${ticketLink}" style="display: inline-block; background-color: #2F5BFF; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                  🚀 Acessar Chamado #${params.ticketId} no GitHub
+                </a>
+              </div>
             </div>
           </div>
         `,
@@ -110,13 +160,14 @@ export async function sendTicketCreatedNotification(params: {
   }
 }
 
-// 2. Notificação de Comentário / Resposta (Envia para todos os participantes do chamado)
+// 2. Notificação de Comentário / Resposta (Com Header Padronizado e Link Direto)
 export async function sendCommentNotification(params: {
   toEmails: string[];
   ticketId: number;
   ticketTitle: string;
   commentAuthor: string;
   commentBody: string;
+  githubUrl?: string;
 }) {
   if (!resend) {
     console.log(`[Resend Mock] Notificação de Resposta no Ticket #${params.ticketId} enviada para ${params.toEmails.join(', ')}`);
@@ -125,22 +176,49 @@ export async function sendCommentNotification(params: {
 
   if (!params.toEmails || params.toEmails.length === 0) return { success: true };
 
+  const ticketLink = params.githubUrl || `https://github.com/250k-dev/recomenda/issues/${params.ticketId}`;
+
   try {
     const data = await resend.emails.send({
       from: `ReportaDesk Suporte <${senderEmail}>`,
       to: params.toEmails,
       subject: `💬 Nova resposta no Ticket #${params.ticketId}: ${params.ticketTitle}`,
       html: `
-        <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f8fafc;">
-          <div style="background: #0F1115; padding: 20px; border-radius: 12px; color: white;">
-            <h3 style="margin: 0; font-size: 16px; color: #F7F7F4;">ReportaDesk • Atualização no Chamado #${params.ticketId}</h3>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 12px;">
+          <div style="background: #0F1115; padding: 24px; border-radius: 12px; border: 1px solid #1E222A; margin-bottom: 24px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+              <tr>
+                <td style="vertical-align: middle; padding-right: 12px;">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width: 38px; height: 38px; background-color: #2F5BFF; border-radius: 10px; text-align: center;">
+                    <tr>
+                      <td style="vertical-align: middle; text-align: center; width: 38px; height: 38px; line-height: 1;">
+                        <span style="display: inline-block; width: 6px; height: 6px; background-color: #D9F24A; border-radius: 50%; vertical-align: middle; margin-right: 2px;"></span>
+                        <span style="display: inline-block; width: 6px; height: 6px; background-color: #F7F7F4; border-radius: 50%; vertical-align: middle; margin-right: 2px;"></span>
+                        <span style="display: inline-block; width: 6px; height: 6px; background-color: #7E93FF; border-radius: 50%; vertical-align: middle;"></span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td style="vertical-align: middle;">
+                  <span style="font-family: 'Space Grotesk', sans-serif; font-size: 24px; color: #F7F7F4;">Reporta<strong style="color: #F7F7F4;">Desk</strong></span>
+                </td>
+              </tr>
+            </table>
+            <p style="margin: 0; color: #A1A1AA; font-size: 13px;">Atualização no Chamado #${params.ticketId}</p>
           </div>
-          <div style="background-color: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 16px;">
+          
+          <div style="background-color: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
             <p style="font-size: 14px; color: #475569; margin-bottom: 16px;">
               <strong>${params.commentAuthor}</strong> adicionou uma nova resposta:
             </p>
-            <div style="background-color: #f1f5f9; padding: 16px; border-left: 4px solid #2F5BFF; border-radius: 4px; font-size: 14px; color: #334155; white-space: pre-wrap; margin-bottom: 20px;">
+            <div style="background-color: #f1f5f9; padding: 16px; border-left: 4px solid #2F5BFF; border-radius: 6px; font-size: 14px; color: #334155; white-space: pre-wrap; margin-bottom: 20px;">
 ${params.commentBody}
+            </div>
+
+            <div style="margin-top: 24px; text-align: center;">
+              <a href="${ticketLink}" style="display: inline-block; background-color: #2F5BFF; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                🔗 Acessar Resposta no Chamado #${params.ticketId}
+              </a>
             </div>
           </div>
         </div>

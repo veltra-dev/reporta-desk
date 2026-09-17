@@ -40,6 +40,7 @@ export async function createTicketAction(formData: FormData) {
         title: newTicket.title,
         category: newTicket.category,
         priority: newTicket.priority,
+        githubUrl: newTicket.githubUrl,
       }).catch(err => console.error('Erro no envio de e-mail:', err));
     }
 
@@ -105,6 +106,7 @@ export async function addCommentAction(ticketId: number, message: string) {
           ticketTitle: ticket.title,
           commentAuthor: authorName,
           commentBody: message,
+          githubUrl: ticket.githubUrl,
         }).catch(err => console.error('Erro no envio de e-mail:', err));
       }
     }
