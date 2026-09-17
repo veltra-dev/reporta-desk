@@ -6,7 +6,7 @@ interface LogoProps {
   variant?: 'full' | 'symbol' | 'small';
 }
 
-export function LogoSymbol({ className = 'w-8 h-8', small = false }: { className?: string; small?: boolean }) {
+export function LogoSymbol({ className = 'w-7 h-7', small = false }: { className?: string; small?: boolean }) {
   if (small) {
     return (
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -35,8 +35,8 @@ export function LogoSymbol({ className = 'w-8 h-8', small = false }: { className
 export default function Logo({ className = '', size = 'md', variant = 'full' }: LogoProps) {
   const heights = {
     sm: 'h-6',
-    md: 'h-8',
-    lg: 'h-10',
+    md: 'h-7',
+    lg: 'h-9',
   };
 
   if (variant === 'symbol') {
@@ -44,18 +44,18 @@ export default function Logo({ className = '', size = 'md', variant = 'full' }: 
   }
 
   return (
-    <div className={`inline-flex items-center ${className}`}>
+    <div className={`inline-flex items-center shrink-0 ${className}`}>
       {/* Lockup Oficial para fundo escuro */}
       <img
         src="/brand/reportadesk-lockup-dark-bg.svg"
         alt="ReportaDesk"
-        className={`${heights[size]} w-auto dark-logo`}
+        className={`${heights[size]} w-auto dark-logo block`}
       />
       {/* Lockup Oficial para fundo claro */}
       <img
         src="/brand/reportadesk-lockup-light-bg.svg"
         alt="ReportaDesk"
-        className={`${heights[size]} w-auto light-logo`}
+        className={`${heights[size]} w-auto light-logo hidden`}
       />
     </div>
   );

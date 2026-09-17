@@ -78,16 +78,16 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
         {/* Lado Esquerdo: Marca Oficial + Repositório GitHub */}
-        <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2 group">
+        <div className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center shrink-0">
             <Logo size="md" />
           </Link>
 
-          {/* Divisor Discreto com Espaçamento Ajustado */}
-          <div className="hidden md:block h-4 w-px bg-zinc-800 mx-0.5" />
+          {/* Divisor Discreto */}
+          <div className="hidden md:block h-3.5 w-px bg-zinc-800" />
 
           {/* Indicador de Status do Repositório */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/60 text-xs">
+          <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-900/60 border border-zinc-800/60 text-xs">
             <GithubIcon className="w-3.5 h-3.5 text-zinc-400" />
             {isGitHubConnected ? (
               <>
@@ -187,7 +187,7 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
             </Link>
           )}
 
-          {/* Botão de Alternar Tema (Dark / Light) - Agora posicionado por último */}
+          {/* Botão de Alternar Tema (Dark / Light) */}
           <ThemeToggle />
 
         </div>
@@ -246,7 +246,7 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
                   required
                   minLength={4}
                   value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
+                  onChange={e => setNewPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-[#2F5BFF]"
                 />
