@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { getSession } from '@/lib/session';
 import { getGitHubConfig } from '@/lib/github';
+import GithubIcon from '@/components/GithubIcon';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -75,8 +76,23 @@ export default async function RootLayout({
             {children}
           </main>
 
-          <footer className="py-6 border-t border-white/5 text-center text-xs text-zinc-500">
-            <p>ReportaDesk • Integrado diretamente com GitHub Issues & Resend</p>
+          <footer className="py-6 border-t border-white/5 text-xs text-zinc-500">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p>ReportaDesk • Integrado diretamente com GitHub Issues & Resend</p>
+              
+              {/* Repositório GitHub no Canto Direito do Footer */}
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/60 text-xs">
+                <GithubIcon className="w-3.5 h-3.5 text-zinc-400" />
+                {isConfigured ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-zinc-400 font-mono text-[11px]">{repo || 'recomenda'}</span>
+                  </>
+                ) : (
+                  <span className="text-zinc-500 text-[11px]">Sandbox</span>
+                )}
+              </div>
+            </div>
           </footer>
         </ThemeProvider>
       </body>

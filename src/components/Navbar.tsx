@@ -13,7 +13,6 @@ import {
   X,
   Loader2
 } from 'lucide-react';
-import GithubIcon from './GithubIcon';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import { SessionUser } from '@/lib/types';
@@ -21,11 +20,11 @@ import { logoutAction, changeOwnPasswordAction } from '@/app/actions/auth';
 
 interface NavbarProps {
   session: SessionUser | null;
-  isGitHubConnected: boolean;
+  isGitHubConnected?: boolean;
   repoName?: string;
 }
 
-export default function Navbar({ session, isGitHubConnected, repoName }: NavbarProps) {
+export default function Navbar({ session }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -77,27 +76,11 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
     <header className="sticky top-0 z-40 w-full bg-[#0F1115]/90 backdrop-blur-md border-b border-zinc-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
-        {/* Lado Esquerdo: Marca Oficial + Repositório GitHub */}
-        <div className="flex items-center gap-2">
+        {/* Lado Esquerdo: Marca Oficial */}
+        <div className="flex items-center">
           <Link href="/" className="flex items-center shrink-0">
             <Logo size="md" />
           </Link>
-
-          {/* Divisor Discreto */}
-          <div className="hidden md:block h-4 w-px bg-zinc-800/80" />
-
-          {/* Indicador de Status do Repositório */}
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/60 text-xs">
-            <GithubIcon className="w-3.5 h-3.5 text-zinc-400" />
-            {isGitHubConnected ? (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-zinc-400 font-mono text-[11px]">{repoName || 'recomenda'}</span>
-              </>
-            ) : (
-              <span className="text-zinc-500 text-[11px]">Sandbox</span>
-            )}
-          </div>
         </div>
 
         {/* Lado Direito: Ações (Novo Chamado, Perfil, Tema por último) */}
@@ -217,11 +200,10 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
 
             <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
               {passwordMsg && (
-                <div className={`p-3 rounded-xl text-xs border ${
-                  passwordMsg.type === "success" 
+                <div className={`p-3 rounded-xl text-xs border ${passwordMsg.type === "success"
                     ? "bg-emerald-950/50 border-emerald-800 text-emerald-300"
                     : "bg-red-950/50 border-red-800 text-red-300"
-                }`}>
+                  }`}>
                   {passwordMsg.text}
                 </div>
               )}
