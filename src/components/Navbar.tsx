@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import GithubIcon from './GithubIcon';
 import Logo from './Logo';
+import ThemeToggle from './ThemeToggle';
 import { SessionUser } from '@/lib/types';
 import { logoutAction, changeOwnPasswordAction } from '@/app/actions/auth';
 
@@ -27,7 +28,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ session, isGitHubConnected, repoName }: NavbarProps) {
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,6 +41,11 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
 
     if (newPassword !== confirmPassword) {
       setPasswordMsg({ type: "error", text: "As senhas não coincidem." });
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setPasswordMsg({ type: "error", text: "A nova senha deve ter pelo menos 4 caracteres." });
       return;
     }
 
@@ -59,6 +65,7 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
       setPasswordMsg({ type: "error", text: res.error || "Erro ao alterar senha." });
     }
   };
+
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -99,8 +106,11 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
         </div>
 
         {/* Ações e Perfil */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           
+          {/* Botão de Alternar Tema (Dark / Light) */}
+          <ThemeToggle />
+
           {session && (
             <>
               {/* Botão Novo Chamado */}
@@ -150,7 +160,6 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
                         </Link>
                       )}
 
-                      
                       <button
                         onClick={() => {
                           setDropdownOpen(false);
