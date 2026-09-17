@@ -17,46 +17,47 @@ export function LogoSymbol({ className = 'w-8 h-8', small = false }: { className
   }
 
   return (
-    <>
+    <div className={`relative inline-flex items-center justify-center shrink-0 ${className}`}>
+      {/* Símbolo para fundo escuro */}
       <img
         src="/brand/reportadesk-symbol-on-dark.svg"
-        alt="ReportaDesk Símbolo"
-        className={`${className} dark-logo`}
+        alt="ReportaDesk"
+        className="w-full h-full dark-logo block"
       />
+      {/* Símbolo para fundo claro */}
       <img
         src="/brand/reportadesk-symbol-primary.svg"
-        alt="ReportaDesk Símbolo"
-        className={`${className} light-logo`}
+        alt="ReportaDesk"
+        className="w-full h-full light-logo hidden"
       />
-    </>
+    </div>
   );
 }
 
 export default function Logo({ className = '', size = 'md', variant = 'full' }: LogoProps) {
-  const heights = {
-    sm: 'h-6',
-    md: 'h-8',
-    lg: 'h-10',
+  const iconSizes = {
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-10 h-10',
+  };
+
+  const textSizes = {
+    sm: 'text-base',
+    md: 'text-xl',
+    lg: 'text-2xl',
   };
 
   if (variant === 'symbol') {
-    return <LogoSymbol className={heights[size]} small={size === 'sm'} />;
+    return <LogoSymbol className={iconSizes[size]} small={size === 'sm'} />;
   }
 
   return (
-    <div className={`inline-flex items-center shrink-0 ${className}`}>
-      {/* Lockup Oficial para fundo escuro */}
-      <img
-        src="/brand/reportadesk-lockup-dark-bg.svg"
-        alt="ReportaDesk"
-        className={`${heights[size]} w-auto dark-logo block`}
-      />
-      {/* Lockup Oficial para fundo claro */}
-      <img
-        src="/brand/reportadesk-lockup-light-bg.svg"
-        alt="ReportaDesk"
-        className={`${heights[size]} w-auto light-logo hidden`}
-      />
+    <div className={`inline-flex items-center gap-2.5 shrink-0 ${className}`}>
+      <LogoSymbol className={iconSizes[size]} small={size === 'sm'} />
+      <span className={`font-sans tracking-tight logo-text select-none flex items-center ${textSizes[size]}`} style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}>
+        <span className="font-normal text-[#F7F7F4] logo-text">Reporta</span>
+        <span className="font-bold text-[#F7F7F4] logo-text">Desk</span>
+      </span>
     </div>
   );
 }
