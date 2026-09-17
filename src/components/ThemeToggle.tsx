@@ -32,7 +32,7 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/50 animate-pulse" />
+      <div className="w-8 h-8 rounded-xl bg-zinc-800/40 border border-zinc-800/60 animate-pulse" />
     );
   }
 
@@ -42,14 +42,14 @@ export default function ThemeToggle() {
       type="button"
       title={theme === 'dark' ? 'Mudar para Modo Claro (Light)' : 'Mudar para Modo Escuro (Dark)'}
       aria-label="Alternar tema"
-      className="relative p-2 rounded-xl border transition-all duration-200 flex items-center justify-center
-        bg-zinc-800/60 border-zinc-700/60 text-zinc-300 hover:text-white hover:bg-zinc-700/80
-        light:bg-slate-100 light:border-slate-300 light:text-slate-700 light:hover:bg-slate-200 light:hover:text-slate-900"
+      className="p-2 rounded-xl transition-all duration-200 flex items-center justify-center
+        bg-zinc-800/40 hover:bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 hover:text-white
+        light:bg-slate-200/60 light:hover:bg-slate-200 light:border-slate-300/80 light:text-slate-700 light:hover:text-slate-900"
     >
       {theme === 'dark' ? (
-        <Sun className="w-4 h-4 text-amber-400 transition-transform hover:rotate-45" />
+        <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 hover:rotate-45" />
       ) : (
-        <Moon className="w-4 h-4 text-indigo-600 transition-transform hover:-rotate-12" />
+        <Moon className="w-4 h-4 text-indigo-600 transition-transform duration-300 hover:-rotate-12" />
       )}
     </button>
   );

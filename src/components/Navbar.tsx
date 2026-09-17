@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, 
-  User, 
-  Shield, 
   ChevronDown,
   LogOut,
   Users,
@@ -79,33 +77,30 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
     <header className="sticky top-0 z-40 w-full bg-[#0F1115]/90 backdrop-blur-md border-b border-zinc-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
-        {/* Logo */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-3 group">
+        {/* Lado Esquerdo: Marca Oficial + Repositório GitHub */}
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex items-center gap-2 group">
             <Logo size="md" />
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 hidden sm:inline-block">
-              Helpdesk
-            </span>
           </Link>
 
+          {/* Divisor Discreto */}
+          <div className="hidden md:block h-4 w-px bg-zinc-800" />
+
           {/* Indicador de Status do Repositório */}
-          <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-zinc-900/80 border border-zinc-800 text-xs">
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/60 text-xs">
             <GithubIcon className="w-3.5 h-3.5 text-zinc-400" />
             {isGitHubConnected ? (
               <>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-zinc-300 font-mono text-[11px]">{repoName || 'Repo Privado'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-zinc-400 font-mono text-[11px]">{repoName || 'recomenda'}</span>
               </>
             ) : (
-              <>
-                <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
-                <span className="text-zinc-400 text-[11px]">Modo Sandbox</span>
-              </>
+              <span className="text-zinc-500 text-[11px]">Sandbox</span>
             )}
           </div>
         </div>
 
-        {/* Ações e Perfil */}
+        {/* Lado Direito: Ações (Tema, Criar Chamado, Perfil) */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           
           {/* Botão de Alternar Tema (Dark / Light) */}
@@ -116,7 +111,7 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
               {/* Botão Novo Chamado */}
               <Link
                 href="/tickets/novo"
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-[#2F5BFF] hover:bg-[#2549D6] transition-colors shadow-lg shadow-[#2F5BFF]/20 active:scale-98"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-[#2F5BFF] hover:bg-[#2549D6] transition-all shadow-md shadow-[#2F5BFF]/20 active:scale-98"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Novo Chamado</span>
@@ -126,18 +121,18 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
               <div className="relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl hover:bg-zinc-800/60 border border-transparent hover:border-zinc-700/60 transition-all"
+                  className="flex items-center gap-2.5 p-1.5 pl-2 pr-3 rounded-xl hover:bg-zinc-800/50 border border-transparent hover:border-zinc-700/50 transition-all"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-[#2F5BFF]/20 border border-[#2F5BFF]/40 flex items-center justify-center text-[#2F5BFF] font-bold text-xs uppercase">
+                  <div className="w-7 h-7 rounded-lg bg-[#2F5BFF]/15 border border-[#2F5BFF]/30 flex items-center justify-center text-[#2F5BFF] font-bold text-xs uppercase shrink-0">
                     {session.name[0]}
                   </div>
                   <div className="text-left hidden sm:block">
-                    <p className="text-xs font-semibold text-zinc-200 leading-tight max-w-[120px] truncate">{session.name}</p>
+                    <p className="text-xs font-semibold text-zinc-200 leading-tight max-w-[130px] truncate">{session.name}</p>
                     <p className="text-[10px] text-zinc-500 capitalize">
                       {session.role === 'admin' ? 'Suporte' : 'Cliente'}
                     </p>
                   </div>
-                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-500 transition-transform duration-200" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none' }} />
                 </button>
 
                 {dropdownOpen && (
