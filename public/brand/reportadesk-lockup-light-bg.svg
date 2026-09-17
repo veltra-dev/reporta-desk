@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 245 48" fill="none">
-  <g transform="translate(0,2)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 44" fill="none">
+  <g transform="translate(0,0)">
     <path d="M10 4H38A8 8 0 0146 12V28A8 8 0 0138 36H25L15 44V36H10A8 8 0 012 28V12A8 8 0 0110 4Z" fill="#0F1115"></path>
     <circle cx="14.5" cy="20" r="3.4" fill="#D9F24A"></circle>
     <circle cx="24" cy="20" r="3.4" fill="#2F5BFF"></circle>
     <circle cx="33.5" cy="20" r="3.4" fill="#5B6272"></circle>
   </g>
-  <text x="56" y="34" font-family="'Space Grotesk', system-ui, -apple-system, sans-serif" font-size="34" font-weight="500" letter-spacing="-0.8" fill="#0F1115">Reporta<tspan font-weight="700" fill="#0F1115">Desk</tspan></text>
+  <text x="54" y="32" font-family="'Space Grotesk', system-ui, -apple-system, sans-serif" font-size="34" font-weight="500" letter-spacing="-0.8" fill="#0F1115">Reporta<tspan font-weight="700" fill="#0F1115">Desk</tspan></text>
 </svg>
