@@ -78,13 +78,13 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         
         {/* Lado Esquerdo: Marca Oficial + Repositório GitHub */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2 group">
             <Logo size="md" />
           </Link>
 
-          {/* Divisor Discreto */}
-          <div className="hidden md:block h-4 w-px bg-zinc-800" />
+          {/* Divisor Discreto com Espaçamento Ajustado */}
+          <div className="hidden md:block h-4 w-px bg-zinc-800 mx-0.5" />
 
           {/* Indicador de Status do Repositório */}
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/60 text-xs">
@@ -100,12 +100,9 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
           </div>
         </div>
 
-        {/* Lado Direito: Ações (Tema, Criar Chamado, Perfil) */}
+        {/* Lado Direito: Ações (Novo Chamado, Perfil, Tema por último) */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           
-          {/* Botão de Alternar Tema (Dark / Light) */}
-          <ThemeToggle />
-
           {session && (
             <>
               {/* Botão Novo Chamado */}
@@ -189,6 +186,9 @@ export default function Navbar({ session, isGitHubConnected, repoName }: NavbarP
               <span>Entrar</span>
             </Link>
           )}
+
+          {/* Botão de Alternar Tema (Dark / Light) - Agora posicionado por último */}
+          <ThemeToggle />
 
         </div>
 
