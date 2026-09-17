@@ -7,8 +7,7 @@ import {
   Bug,
   HelpCircle,
   Sparkles,
-  CreditCard,
-  Key
+  Bot
 } from 'lucide-react';
 import { TicketStatus, TicketPriority, TicketCategory } from '@/lib/types';
 
@@ -88,19 +87,18 @@ export function PriorityBadge({ priority }: { priority: TicketPriority }) {
 
 export function CategoryBadge({ category }: { category: TicketCategory }) {
   const configs: Record<TicketCategory, { label: string; icon: React.ElementType }> = {
-    bug: { label: 'Bug', icon: Bug },
+    bug: { label: 'Bug / Falha', icon: Bug },
     duvida: { label: 'Dúvida', icon: HelpCircle },
     melhoria: { label: 'Melhoria', icon: Sparkles },
-    faturamento: { label: 'Faturamento', icon: CreditCard },
-    acesso: { label: 'Acesso', icon: Key },
+    lico: { label: 'Lico (IA WhatsApp)', icon: Bot },
   };
 
   const config = configs[category] || configs.duvida;
   const Icon = config.icon;
 
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-900 border border-zinc-800 text-zinc-400">
-      <Icon className="w-3 h-3 text-zinc-500" />
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-900 border border-zinc-800 text-zinc-300">
+      <Icon className="w-3 h-3 text-zinc-400 shrink-0" />
       <span>{config.label}</span>
     </span>
   );

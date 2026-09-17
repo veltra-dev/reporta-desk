@@ -2,7 +2,7 @@ export type TicketStatus = 'novo' | 'em_andamento' | 'aguardando_cliente' | 'res
 
 export type TicketPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 
-export type TicketCategory = 'bug' | 'duvida' | 'melhoria' | 'faturamento' | 'acesso';
+export type TicketCategory = 'bug' | 'duvida' | 'melhoria' | 'lico';
 
 export interface ClientMetadata {
   clientName: string;

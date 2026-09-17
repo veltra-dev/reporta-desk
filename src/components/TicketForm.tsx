@@ -6,8 +6,7 @@ import {
   Bug, 
   HelpCircle, 
   Sparkles, 
-  CreditCard, 
-  Key, 
+  Bot, 
   Send, 
   ArrowLeft, 
   Eye, 
@@ -25,8 +24,7 @@ const categories: { id: TicketCategory; label: string; icon: React.ElementType }
   { id: 'bug', label: 'Bug / Falha', icon: Bug },
   { id: 'duvida', label: 'Dúvida', icon: HelpCircle },
   { id: 'melhoria', label: 'Melhoria', icon: Sparkles },
-  { id: 'faturamento', label: 'Faturamento', icon: CreditCard },
-  { id: 'acesso', label: 'Permissões', icon: Key },
+  { id: 'lico', label: 'Lico (IA WhatsApp)', icon: Bot },
 ];
 
 const priorities: { id: TicketPriority; label: string }[] = [

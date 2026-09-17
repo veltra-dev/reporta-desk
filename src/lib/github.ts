@@ -2,78 +2,7 @@ import { Octokit } from '@octokit/rest';
 import { Ticket, TicketComment, TicketPriority, TicketStatus, TicketCategory, ClientMetadata } from './types';
 
 // Mock data em memória para visualização instantânea antes de configurar as chaves
-let mockTickets: Ticket[] = [
-  {
-    id: 101,
-    title: 'Falha intermitente na emissão de relatórios consolidados em PDF',
-    body: 'Identificamos que ao tentar exportar o relatório financeiro do mês de Agosto com mais de 500 registros, a tela entra em carregamento infinito e retorna erro de timeout 504 no servidor.\n\n### Passos para reproduzir:\n1. Acesse o menu Financeiro > Relatórios\n2. Filtre pelo período de 01/08 a 31/08\n3. Clique em "Exportar PDF Consolidado"\n\n**Impacto**: Alto, nossa diretoria precisa fechar a auditoria até amanhã.',
-    status: 'em_andamento',
-    priority: 'alta',
-    category: 'bug',
-    clientName: 'Mariana Silveira',
-    clientEmail: 'mariana.silveira@acme-corp.com',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(), // 5 horas atrás
-    updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-    commentsCount: 2,
-    githubUrl: 'https://github.com/empresa/repo-chamados/issues/101',
-    comments: [
-      {
-        id: 1,
-        body: 'Olá Mariana, nossa equipe de infraestrutura já isolou a consulta lenta no banco de dados e está aplicando uma otimização de índice. Atualizaremos você assim que o deploy for finalizado.',
-        authorName: 'Gabriel Santos (Dev/Suporte)',
-        authorEmail: 'suporte@reportadesk.internal',
-        createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
-        isStaff: true,
-      },
-      {
-        id: 2,
-        body: 'Muito obrigada pelo retorno rápido, Gabriel! Fico no aguardo para testar.',
-        authorName: 'Mariana Silveira',
-        authorEmail: 'mariana.silveira@acme-corp.com',
-        createdAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-        isStaff: false,
-      }
-    ]
-  },
-  {
-    id: 102,
-    title: 'Solicitação de acesso adicional para novo analista financeiro',
-    body: 'Precisamos de liberação de permissão de visualização e emissão de notas fiscais para o colaborador recém-contratado: Lucas Prado (lucas.prado@acme-corp.com).',
-    status: 'novo',
-    priority: 'media',
-    category: 'acesso',
-    clientName: 'Carlos Mendonça',
-    clientEmail: 'carlos.mendonca@acme-corp.com',
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    commentsCount: 0,
-    githubUrl: 'https://github.com/empresa/repo-chamados/issues/102',
-    comments: []
-  },
-  {
-    id: 103,
-    title: 'Dúvida sobre cobrança proporcional na renovação anual',
-    body: 'Gostaríamos de entender o cálculo da fatura #INV-9821 recebida hoje referente ao upgrade de 10 para 25 licenças.',
-    status: 'resolvido',
-    priority: 'baixa',
-    category: 'faturamento',
-    clientName: 'Juliana Rocha',
-    clientEmail: 'juliana.rocha@techhub.io',
-    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-    commentsCount: 1,
-    githubUrl: 'https://github.com/empresa/repo-chamados/issues/103',
-    comments: [
-      {
-        id: 3,
-        body: 'Juliana, encaminhamos o demonstrativo detalhado da cobrança proporcional (prorata) para o seu e-mail financeiro. O valor foi ajustado com base nos 14 dias restantes do ciclo.',
-        authorName: 'Equipe Financeira (ReportaDesk)',
-        createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
-        isStaff: true,
-      }
-    ]
-  }
-];
+let mockTickets: Ticket[] = [];
 
 export function getGitHubConfig() {
   const token = process.env.GITHUB_TOKEN;
@@ -255,6 +184,17 @@ export async function listTickets(filterEmail?: string): Promise<Ticket[]> {
       if (issue.pull_request) continue;
 
       const meta = extractMetadata(issue.body || '');
+
+      // Filtrar apenas chamados do ReportaDesk (com label 'reportadesk' ou metadados de cliente)
+      const hasReportadeskLabel = issue.labels?.some(l => 
+        (typeof l === 'string' && l === 'reportadesk') ||
+        (typeof l === 'object' && l.name === 'reportadesk')
+      );
+      const isReportaDeskIssue = hasReportadeskLabel || Boolean(meta);
+
+      if (!isReportaDeskIssue) {
+        continue; // Ignora issues internas do repositório dev
+      }
 
       // Status
       let status: TicketStatus = issue.state === 'closed' ? 'fechado' : 'novo';
