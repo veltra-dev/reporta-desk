@@ -8,7 +8,6 @@ interface LogoProps {
 
 export function LogoSymbol({ className = 'w-8 h-8', small = false }: { className?: string; small?: boolean }) {
   if (small) {
-    // Versão simplificada (1b) para uso abaixo de 48px / pequenos ícones
     return (
       <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
         <path d="M10 4H38A8 8 0 0146 12V28A8 8 0 0138 36H25L15 44V36H10A8 8 0 012 28V12A8 8 0 0110 4Z" fill="#2F5BFF" />
@@ -18,11 +17,10 @@ export function LogoSymbol({ className = 'w-8 h-8', small = false }: { className
   }
 
   return (
-    // Versão primária (3 pontos: Aberto #D9F24A, Em Progresso #F7F7F4, Concluído #7E93FF)
     <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <path d="M10 4H38A8 8 0 0146 12V28A8 8 0 0138 36H25L15 44V36H10A8 8 0 012 28V12A8 8 0 0110 4Z" fill="#2F5BFF" />
       <circle cx="14.5" cy="20" r="3.4" fill="#D9F24A" />
-      <circle cx="24" cy="20" r="3.4" fill="#F7F7F4" />
+      <circle cx="24" cy="20" r="3.4" fill="#F7F7F4" className="logo-middle-dot transition-colors" />
       <circle cx="33.5" cy="20" r="3.4" fill="#7E93FF" />
     </svg>
   );
@@ -48,9 +46,9 @@ export default function Logo({ className = '', size = 'md', variant = 'full' }: 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
       <LogoSymbol className={iconSizes[size]} small={size === 'sm'} />
-      <span className={`font-sans tracking-tight text-[#F7F7F4] flex items-center ${heights[size]}`} style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+      <span className={`font-sans tracking-tight text-[#F7F7F4] logo-text flex items-center ${heights[size]}`} style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
         <span className="font-normal text-lg sm:text-xl">Reporta</span>
-        <span className="font-bold text-lg sm:text-xl text-[#F7F7F4]">Desk</span>
+        <span className="font-bold text-lg sm:text-xl">Desk</span>
       </span>
     </div>
   );
