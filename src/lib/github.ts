@@ -1,3 +1,4 @@
+import { uploadBase64ToSupabase } from './supabase';
 import { Octokit } from '@octokit/rest';
 import { Ticket, TicketComment, TicketPriority, TicketStatus, TicketCategory, ClientMetadata } from './types';
 
@@ -23,6 +24,36 @@ function getOctokitClient() {
   const { token } = getGitHubConfig();
   if (!token) return null;
   return new Octokit({ auth: token });
+}
+
+
+function parseTicketStatus(
+  issueState: string,
+  issueLabels: any[] = [],
+  metaStatus?: TicketStatus
+): TicketStatus {
+  const statusLabelObj = issueLabels.find(l => 
+    (typeof l === 'object' && l.name?.startsWith('status:')) ||
+    (typeof l === 'string' && l.startsWith('status:'))
+  );
+  
+  const statusFromLabel = statusLabelObj
+    ? ((typeof statusLabelObj === 'object' ? statusLabelObj.name : statusLabelObj).replace('status:', '') as TicketStatus)
+    : null;
+
+  let status: TicketStatus = statusFromLabel || metaStatus || (issueState === 'closed' ? 'fechado' : 'novo');
+
+  if (issueState === 'closed') {
+    if (status !== 'resolvido' && status !== 'fechado') {
+      status = 'resolvido';
+    }
+  } else if (issueState === 'open') {
+    if (status === 'fechado' || status === 'resolvido') {
+      status = 'em_andamento';
+    }
+  }
+
+  return status;
 }
 
 // Helpers para extrair metadados ocultos do corpo da Issue
@@ -75,6 +106,15 @@ export async function uploadAttachmentToGitHub(
   fileName: string,
   base64Data: string
 ): Promise<string> {
+  try {
+    const supabaseUrl = await uploadBase64ToSupabase(base64Data, fileName);
+    if (supabaseUrl) {
+      return supabaseUrl;
+    }
+  } catch (err) {
+    console.warn("Supabase Storage fallback for upload:", err);
+  }
+
   const { isConfigured, owner, repo } = getGitHubConfig();
   if (!isConfigured) return base64Data;
 
@@ -132,22 +172,45 @@ export async function uploadAttachmentToGitHub(
 }
 
 async function processBase64ImagesInText(text: string): Promise<string> {
-  const base64Regex = /!\[(.*?)\]\((data:image\/[a-zA-Z]+;base64,[\s\S]+?)\)/g;
+  const base64Regex = /(!)?\[(.*?)\]\((data:(?:image|video|application)\/(?:[a-zA-Z0-9+.-]+);base64,[\s\S]+?)\)/g;
   let match;
-  const replacements = [];
+  const replacements: Array<{ original: string; replacement: string }> = [];
 
   while ((match = base64Regex.exec(text)) !== null) {
-    const alt = match[1] || "anexo.jpg";
-    const base64 = match[2];
-    const uploadedUrl = await uploadAttachmentToGitHub(alt, base64);
-    if (uploadedUrl && uploadedUrl !== base64) {
-      replacements.push({ original: base64, url: uploadedUrl });
+    const alt = match[2] || "anexo";
+    const base64 = match[3];
+    const isVideoOrDoc = base64.startsWith("data:video/") || base64.startsWith("data:application/") || alt.endsWith(".mp4") || alt.endsWith(".webm") || alt.endsWith(".pdf");
+
+    try {
+      const uploadedUrl = await uploadAttachmentToGitHub(alt, base64);
+      if (uploadedUrl && uploadedUrl !== base64) {
+        const downloadUrl = (uploadedUrl.includes('supabase.co') && !uploadedUrl.includes('?download='))
+          ? `${uploadedUrl}?download=${encodeURIComponent(alt)}`
+          : uploadedUrl;
+
+        const tag = isVideoOrDoc
+          ? `[🎥 Assistir/Baixar Vídeo: ${alt}](${downloadUrl})`
+          : `![${alt}](${uploadedUrl})`;
+
+        replacements.push({ original: match[0], replacement: tag });
+      } else if (base64.length > 5000) {
+        replacements.push({ original: match[0], replacement: `[Anexo grande: ${alt}]` });
+      }
+    } catch (err) {
+      console.warn("Erro ao processar anexo base64:", err);
+      if (base64.length > 5000) {
+        replacements.push({ original: match[0], replacement: `[Anexo grande: ${alt}]` });
+      }
     }
   }
 
   let updatedText = text;
   for (const item of replacements) {
-    updatedText = updatedText.replace(item.original, item.url);
+    updatedText = updatedText.replace(item.original, item.replacement);
+  }
+
+  if (updatedText.length > 60000) {
+    updatedText = updatedText.substring(0, 60000) + "\n\n*(Conteúdo resumido por exceder o limite do GitHub)*";
   }
 
   return updatedText;
@@ -197,24 +260,20 @@ export async function listTickets(filterEmail?: string): Promise<Ticket[]> {
       }
 
       // Status
-      let status: TicketStatus = issue.state === 'closed' ? 'fechado' : 'novo';
-      if (meta?.status) {
-        status = meta.status;
-      } else {
-        const statusLabel = issue.labels.find(l => typeof l === 'object' && l.name?.startsWith('status:'));
-        if (statusLabel && typeof statusLabel === 'object' && statusLabel.name) {
-          status = statusLabel.name.replace('status:', '') as TicketStatus;
-        }
-      }
+      const status = parseTicketStatus(issue.state, issue.labels, meta?.status);
 
       // Prioridade
       let priority: TicketPriority = 'media';
       if (meta?.priority) {
         priority = meta.priority;
       } else {
-        const prioLabel = issue.labels.find(l => typeof l === 'object' && l.name?.startsWith('prioridade:'));
-        if (prioLabel && typeof prioLabel === 'object' && prioLabel.name) {
-          priority = prioLabel.name.replace('prioridade:', '') as TicketPriority;
+        const prioLabel = issue.labels.find(l => {
+          const name = typeof l === 'object' ? l.name : l;
+          return name?.startsWith('priority:') || name?.startsWith('prioridade:');
+        });
+        if (prioLabel) {
+          const name = typeof prioLabel === 'object' ? (prioLabel.name || '') : (prioLabel as string);
+          priority = name.replace(/^priority:|^prioridade:/, '') as TicketPriority;
         }
       }
 
@@ -223,9 +282,13 @@ export async function listTickets(filterEmail?: string): Promise<Ticket[]> {
       if (meta?.category) {
         category = meta.category;
       } else {
-        const catLabel = issue.labels.find(l => typeof l === 'object' && l.name?.startsWith('tipo:'));
-        if (catLabel && typeof catLabel === 'object' && catLabel.name) {
-          category = catLabel.name.replace('tipo:', '') as TicketCategory;
+        const catLabel = issue.labels.find(l => {
+          const name = typeof l === 'object' ? l.name : l;
+          return name?.startsWith('type:') || name?.startsWith('tipo:');
+        });
+        if (catLabel) {
+          const name = typeof catLabel === 'object' ? (catLabel.name || '') : (catLabel as string);
+          category = name.replace(/^type:|^tipo:/, '') as TicketCategory;
         }
       }
 
@@ -288,8 +351,7 @@ export async function getTicket(issueNumber: number): Promise<Ticket | null> {
     });
 
     const meta = extractMetadata(issue.body || '');
-    let status: TicketStatus = issue.state === 'closed' ? 'fechado' : 'novo';
-    if (meta?.status) status = meta.status;
+    const status = parseTicketStatus(issue.state, issue.labels, meta?.status);
 
     let priority: TicketPriority = meta?.priority || 'media';
     let category: TicketCategory = meta?.category || 'duvida';
@@ -312,6 +374,30 @@ export async function getTicket(issueNumber: number): Promise<Ticket | null> {
       };
     });
 
+    const linkedTicketsIds = meta?.linkedTickets || [];
+    const linkedTicketsDetails: { id: number; title: string; status: TicketStatus }[] = [];
+
+    if (linkedTicketsIds.length > 0) {
+      for (const linkedId of linkedTicketsIds) {
+        try {
+          const { data: linkedIssue } = await octokit.rest.issues.get({
+            owner,
+            repo,
+            issue_number: linkedId,
+          });
+          const linkedMeta = extractMetadata(linkedIssue.body || '');
+          const linkedStatus = parseTicketStatus(linkedIssue.state, linkedIssue.labels, linkedMeta?.status);
+          linkedTicketsDetails.push({
+            id: linkedIssue.number,
+            title: linkedIssue.title,
+            status: linkedStatus,
+          });
+        } catch {
+          // Ignorar se issue vinculada não for encontrada
+        }
+      }
+    }
+
     return {
       id: issue.number,
       title: issue.title,
@@ -326,8 +412,15 @@ export async function getTicket(issueNumber: number): Promise<Ticket | null> {
       commentsCount: issue.comments,
       githubUrl: issue.html_url,
       comments: formattedComments,
+      participants: meta?.participants || [],
+      linkedTickets: linkedTicketsIds,
+      linkedTicketsDetails,
     };
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.status === 410 || error?.status === 404) {
+      console.log(`[GitHub API] Chamado #${issueNumber} foi excluído ou não existe no GitHub (status ${error?.status}).`);
+      return null;
+    }
     console.error(`Erro ao buscar ticket #${issueNumber} no GitHub:`, error);
     const found = mockTickets.find(t => t.id === issueNumber);
     return found ? JSON.parse(JSON.stringify(found)) : null;
@@ -383,8 +476,8 @@ export async function createTicket(params: {
   const fullBody = buildIssueBody(processedDescription, meta);
   const labels = [
     `status:novo`,
-    `prioridade:${params.priority}`,
-    `tipo:${params.category}`,
+    `priority:${params.priority}`,
+    `type:${params.category}`,
     'reportadesk'
   ];
 
@@ -490,10 +583,355 @@ export async function updateTicketStatus(
 
   const state = (status === 'resolvido' || status === 'fechado') ? 'closed' : 'open';
 
+  try {
+    const { data: currentIssue } = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    });
+
+    let currentBody = currentIssue.body || "";
+    let meta = extractMetadata(currentBody) || {
+      clientName: currentIssue.user?.login || "Cliente",
+      clientEmail: "",
+      category: "duvida",
+      priority: "media",
+      status,
+      createdAt: new Date().toISOString(),
+      participants: [],
+    };
+
+    meta.status = status;
+    const metaJson = JSON.stringify(meta);
+
+    let newBody = currentBody;
+    if (/<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/.test(currentBody)) {
+      newBody = currentBody.replace(
+        /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+        `<!-- reportadesk_meta: ${metaJson} -->`
+      );
+    } else {
+      newBody = `${currentBody}\n\n<!-- reportadesk_meta: ${metaJson} -->\n`;
+    }
+
+    const existingLabels = (currentIssue.labels || []).map((l: any) =>
+      typeof l === 'string' ? l : l.name || ''
+    );
+    const cleanLabels = existingLabels.filter((l: string) => !l.startsWith('status:'));
+    cleanLabels.push(`status:${status}`);
+
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      state,
+      body: newBody,
+      labels: cleanLabels,
+    });
+  } catch (error) {
+    console.error(`Erro ao atualizar status do ticket #${issueNumber} no GitHub:`, error);
+  }
+}
+
+
+export async function addParticipantToTicket(
+  issueNumber: number,
+  email: string
+): Promise<void> {
+  const { isConfigured, owner, repo } = getGitHubConfig();
+
+  if (!isConfigured) {
+    const ticket = mockTickets.find(t => t.id === issueNumber);
+    if (ticket) {
+      ticket.participants = ticket.participants || [];
+      if (!ticket.participants.includes(email)) {
+        ticket.participants.push(email);
+      }
+    }
+    return;
+  }
+
+  const octokit = getOctokitClient();
+  if (!octokit || !owner || !repo) return;
+
+  const { data: currentIssue } = await octokit.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  let currentBody = currentIssue.body || "";
+  let meta = extractMetadata(currentBody) || {
+    clientName: currentIssue.user?.login || "Cliente",
+    clientEmail: "",
+    category: "duvida",
+    priority: "media",
+    status: "novo",
+    createdAt: new Date().toISOString(),
+    participants: [],
+  };
+
+  meta.participants = meta.participants || [];
+  if (!meta.participants.includes(email)) {
+    meta.participants.push(email);
+  }
+
+  const metaJson = JSON.stringify(meta);
+  let newBody = currentBody;
+  if (/<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/.test(currentBody)) {
+    newBody = currentBody.replace(
+      /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+      `<!-- reportadesk_meta: ${metaJson} -->`
+    );
+  } else {
+    newBody = `${currentBody}\n\n<!-- reportadesk_meta: ${metaJson} -->\n`;
+  }
+
   await octokit.rest.issues.update({
     owner,
     repo,
     issue_number: issueNumber,
-    state,
+    body: newBody,
   });
+}
+
+export async function removeParticipantFromTicket(
+  issueNumber: number,
+  email: string
+): Promise<void> {
+  const { isConfigured, owner, repo } = getGitHubConfig();
+
+  if (!isConfigured) {
+    const ticket = mockTickets.find(t => t.id === issueNumber);
+    if (ticket && ticket.participants) {
+      ticket.participants = ticket.participants.filter(p => p !== email);
+    }
+    return;
+  }
+
+  const octokit = getOctokitClient();
+  if (!octokit || !owner || !repo) return;
+
+  const { data: currentIssue } = await octokit.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+
+  let currentBody = currentIssue.body || "";
+  let meta = extractMetadata(currentBody);
+  if (!meta || !meta.participants) return;
+
+  meta.participants = meta.participants.filter(p => p !== email);
+  const metaJson = JSON.stringify(meta);
+
+  let newBody = currentBody.replace(
+    /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+    `<!-- reportadesk_meta: ${metaJson} -->`
+  );
+
+  await octokit.rest.issues.update({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body: newBody,
+  });
+}
+
+export async function linkTickets(
+  issueNumberA: number,
+  issueNumberB: number
+): Promise<{ success: boolean; error?: string }> {
+  if (issueNumberA === issueNumberB) {
+    return { success: false, error: 'Não é possível vincular um chamado a ele mesmo.' };
+  }
+
+  const { isConfigured, owner, repo } = getGitHubConfig();
+
+  if (!isConfigured) {
+    const ticketA = mockTickets.find(t => t.id === issueNumberA);
+    const ticketB = mockTickets.find(t => t.id === issueNumberB);
+
+    if (!ticketA || !ticketB) {
+      return { success: false, error: `Chamado #${!ticketA ? issueNumberA : issueNumberB} não foi encontrado.` };
+    }
+
+    ticketA.linkedTickets = ticketA.linkedTickets || [];
+    if (!ticketA.linkedTickets.includes(issueNumberB)) {
+      ticketA.linkedTickets.push(issueNumberB);
+    }
+
+    ticketB.linkedTickets = ticketB.linkedTickets || [];
+    if (!ticketB.linkedTickets.includes(issueNumberA)) {
+      ticketB.linkedTickets.push(issueNumberA);
+    }
+
+    return { success: true };
+  }
+
+  const octokit = getOctokitClient();
+  if (!octokit || !owner || !repo) {
+    return { success: false, error: 'Configuração do GitHub indisponível.' };
+  }
+
+  try {
+    const [resA, resB] = await Promise.all([
+      octokit.rest.issues.get({ owner, repo, issue_number: issueNumberA }).catch(() => null),
+      octokit.rest.issues.get({ owner, repo, issue_number: issueNumberB }).catch(() => null),
+    ]);
+
+    if (!resA || !resB) {
+      const missingId = !resA ? issueNumberA : issueNumberB;
+      return { success: false, error: `Chamado #${missingId} não existe no GitHub.` };
+    }
+
+    const issueA = resA.data;
+    const issueB = resB.data;
+
+    // Atualizar Issue A
+    let bodyA = issueA.body || "";
+    let metaA = extractMetadata(bodyA) || {
+      clientName: issueA.user?.login || "Cliente",
+      clientEmail: "",
+      category: "duvida",
+      priority: "media",
+      status: "novo",
+      createdAt: new Date().toISOString(),
+      participants: [],
+      linkedTickets: [],
+    };
+    metaA.linkedTickets = metaA.linkedTickets || [];
+    if (!metaA.linkedTickets.includes(issueNumberB)) {
+      metaA.linkedTickets.push(issueNumberB);
+    }
+    const metaAJson = JSON.stringify(metaA);
+    let newBodyA = bodyA;
+    if (/<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/.test(bodyA)) {
+      newBodyA = bodyA.replace(
+        /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+        `<!-- reportadesk_meta: ${metaAJson} -->`
+      );
+    } else {
+      newBodyA = `${bodyA}\n\n<!-- reportadesk_meta: ${metaAJson} -->\n`;
+    }
+
+    // Atualizar Issue B
+    let bodyB = issueB.body || "";
+    let metaB = extractMetadata(bodyB) || {
+      clientName: issueB.user?.login || "Cliente",
+      clientEmail: "",
+      category: "duvida",
+      priority: "media",
+      status: "novo",
+      createdAt: new Date().toISOString(),
+      participants: [],
+      linkedTickets: [],
+    };
+    metaB.linkedTickets = metaB.linkedTickets || [];
+    if (!metaB.linkedTickets.includes(issueNumberA)) {
+      metaB.linkedTickets.push(issueNumberA);
+    }
+    const metaBJson = JSON.stringify(metaB);
+    let newBodyB = bodyB;
+    if (/<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/.test(bodyB)) {
+      newBodyB = bodyB.replace(
+        /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+        `<!-- reportadesk_meta: ${metaBJson} -->`
+      );
+    } else {
+      newBodyB = `${bodyB}\n\n<!-- reportadesk_meta: ${metaBJson} -->\n`;
+    }
+
+    await Promise.all([
+      octokit.rest.issues.update({ owner, repo, issue_number: issueNumberA, body: newBodyA }),
+      octokit.rest.issues.update({ owner, repo, issue_number: issueNumberB, body: newBodyB }),
+    ]);
+
+    // Comentar no GitHub mencionando a outra issue (#123) para vincular nativamente no GitHub
+    await Promise.all([
+      octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumberA,
+        body: `🔗 **Chamado vinculado ao chamado #${issueNumberB}** (${issueB.title})`,
+      }).catch(() => null),
+      octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumberB,
+        body: `🔗 **Chamado vinculado ao chamado #${issueNumberA}** (${issueA.title})`,
+      }).catch(() => null),
+    ]);
+
+    return { success: true };
+  } catch (error: any) {
+    console.error(`Erro ao vincular chamados #${issueNumberA} e #${issueNumberB}:`, error);
+    return { success: false, error: 'Erro ao vincular chamados no GitHub.' };
+  }
+}
+
+export async function unlinkTickets(
+  issueNumberA: number,
+  issueNumberB: number
+): Promise<{ success: boolean; error?: string }> {
+  const { isConfigured, owner, repo } = getGitHubConfig();
+
+  if (!isConfigured) {
+    const ticketA = mockTickets.find(t => t.id === issueNumberA);
+    const ticketB = mockTickets.find(t => t.id === issueNumberB);
+    if (ticketA && ticketA.linkedTickets) {
+      ticketA.linkedTickets = ticketA.linkedTickets.filter(id => id !== issueNumberB);
+    }
+    if (ticketB && ticketB.linkedTickets) {
+      ticketB.linkedTickets = ticketB.linkedTickets.filter(id => id !== issueNumberA);
+    }
+    return { success: true };
+  }
+
+  const octokit = getOctokitClient();
+  if (!octokit || !owner || !repo) {
+    return { success: false, error: 'Configuração do GitHub indisponível.' };
+  }
+
+  try {
+    const [resA, resB] = await Promise.all([
+      octokit.rest.issues.get({ owner, repo, issue_number: issueNumberA }).catch(() => null),
+      octokit.rest.issues.get({ owner, repo, issue_number: issueNumberB }).catch(() => null),
+    ]);
+
+    if (resA) {
+      const issueA = resA.data;
+      let bodyA = issueA.body || "";
+      let metaA = extractMetadata(bodyA);
+      if (metaA && metaA.linkedTickets) {
+        metaA.linkedTickets = metaA.linkedTickets.filter(id => id !== issueNumberB);
+        const metaAJson = JSON.stringify(metaA);
+        let newBodyA = bodyA.replace(
+          /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+          `<!-- reportadesk_meta: ${metaAJson} -->`
+        );
+        await octokit.rest.issues.update({ owner, repo, issue_number: issueNumberA, body: newBodyA });
+      }
+    }
+
+    if (resB) {
+      const issueB = resB.data;
+      let bodyB = issueB.body || "";
+      let metaB = extractMetadata(bodyB);
+      if (metaB && metaB.linkedTickets) {
+        metaB.linkedTickets = metaB.linkedTickets.filter(id => id !== issueNumberA);
+        const metaBJson = JSON.stringify(metaB);
+        let newBodyB = bodyB.replace(
+          /<!--\s*(?:reportadesk_meta|taskcloud_meta):\s*{[\s\S]*?}\s*-->/,
+          `<!-- reportadesk_meta: ${metaBJson} -->`
+        );
+        await octokit.rest.issues.update({ owner, repo, issue_number: issueNumberB, body: newBodyB });
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error(`Erro ao desvincular chamados #${issueNumberA} e #${issueNumberB}:`, error);
+    return { success: false, error: 'Erro ao desvincular chamados no GitHub.' };
+  }
 }

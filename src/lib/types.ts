@@ -11,6 +11,8 @@ export interface ClientMetadata {
   priority: TicketPriority;
   status: TicketStatus;
   createdAt: string;
+  participants?: string[];
+  linkedTickets?: number[];
 }
 
 export interface TicketComment {
@@ -20,11 +22,11 @@ export interface TicketComment {
   authorEmail?: string;
   authorAvatarUrl?: string;
   createdAt: string;
-  isStaff: boolean; // Se foi postado pela equipe de desenvolvimento/suporte no GitHub ou pelo cliente
+  isStaff: boolean;
 }
 
 export interface Ticket {
-  id: number; // GitHub issue number
+  id: number;
   title: string;
   body: string;
   status: TicketStatus;
@@ -37,6 +39,9 @@ export interface Ticket {
   commentsCount: number;
   githubUrl: string;
   comments?: TicketComment[];
+  participants?: string[];
+  linkedTickets?: number[];
+  linkedTicketsDetails?: { id: number; title: string; status: TicketStatus }[];
 }
 
 export interface SessionUser {

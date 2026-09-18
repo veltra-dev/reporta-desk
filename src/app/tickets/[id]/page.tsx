@@ -2,8 +2,9 @@ import React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
-import { getTicket } from '@/lib/github';
+import { getTicket, listTickets } from '@/lib/github';
 import { getSession } from '@/lib/session';
+import { getUsersList } from '@/lib/users';
 import TicketDetailClient from '@/components/TicketDetailClient';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,17 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
   const { id } = await params;
   const ticketId = parseInt(id, 10);
   const ticket = await getTicket(ticketId);
+  const allUsers = await getUsersList();
+  const allTickets = await listTickets();
+
+  const availableTickets = allTickets.filter(t => t.id !== ticketId).map(t => ({ id: t.id, title: t.title, status: t.status }));
+
+  const availableUsers = allUsers.filter(u => u.role === 'client').map(u => ({
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    company: u.company,
+  }));
 
   if (!ticket) {
     return (
@@ -54,5 +66,5 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
     );
   }
 
-  return <TicketDetailClient ticket={ticket} session={session} />;
+  return <TicketDetailClient ticket={ticket} session={session} availableUsers={availableUsers} availableTickets={availableTickets} />;
 }

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createTicket, addComment, updateTicketStatus, getTicket } from '@/lib/github';
+import { createTicket, addComment, updateTicketStatus, getTicket, addParticipantToTicket, removeParticipantFromTicket, linkTickets, unlinkTickets } from '@/lib/github';
 import { sendTicketCreatedNotification, sendCommentNotification } from '@/lib/resend';
 import { getSession, setSession, clearSession } from '@/lib/session';
 import { TicketCategory, TicketPriority, TicketStatus, SessionUser } from '@/lib/types';
@@ -79,6 +79,9 @@ export async function addCommentAction(ticketId: number, message: string) {
     if (ticket) {
       const emailSet = new Set<string>();
       if (ticket.clientEmail) emailSet.add(ticket.clientEmail.toLowerCase());
+      if (ticket.participants && ticket.participants.length > 0) {
+        ticket.participants.forEach(p => emailSet.add(p.toLowerCase()));
+      }
 
       if (ticket.comments) {
         ticket.comments.forEach(c => {
@@ -147,4 +150,68 @@ export async function logoutAction() {
   revalidatePath('/');
   revalidatePath('/tickets');
   return { success: true };
+}
+
+export async function addParticipantAction(ticketId: number, email: string) {
+  try {
+    await addParticipantToTicket(ticketId, email);
+    revalidatePath('/');
+    revalidatePath('/tickets');
+    revalidatePath(`/tickets/${ticketId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Falha ao adicionar participante:', error);
+    const message = error instanceof Error ? error.message : 'Erro ao adicionar participante';
+    return { success: false, error: message };
+  }
+}
+
+export async function removeParticipantAction(ticketId: number, email: string) {
+  try {
+    await removeParticipantFromTicket(ticketId, email);
+    revalidatePath('/');
+    revalidatePath('/tickets');
+    revalidatePath(`/tickets/${ticketId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Falha ao remover participante:', error);
+    const message = error instanceof Error ? error.message : 'Erro ao remover participante';
+    return { success: false, error: message };
+  }
+}
+
+export async function linkTicketsAction(ticketId: number, targetTicketId: number) {
+  try {
+    const res = await linkTickets(ticketId, targetTicketId);
+    if (!res.success) {
+      return { success: false, error: res.error };
+    }
+    revalidatePath('/');
+    revalidatePath('/tickets');
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath(`/tickets/${targetTicketId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Falha ao vincular chamado:', error);
+    const message = error instanceof Error ? error.message : 'Erro ao vincular chamado';
+    return { success: false, error: message };
+  }
+}
+
+export async function unlinkTicketsAction(ticketId: number, targetTicketId: number) {
+  try {
+    const res = await unlinkTickets(ticketId, targetTicketId);
+    if (!res.success) {
+      return { success: false, error: res.error };
+    }
+    revalidatePath('/');
+    revalidatePath('/tickets');
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath(`/tickets/${targetTicketId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error('Falha ao desvincular chamado:', error);
+    const message = error instanceof Error ? error.message : 'Erro ao desvincular chamado';
+    return { success: false, error: message };
+  }
 }

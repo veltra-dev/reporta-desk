@@ -44,12 +44,13 @@ export default async function RootLayout({
   const { isConfigured, repo } = getGitHubConfig();
 
   return (
-    <html lang="pt-BR" className={`${spaceGrotesk.variable} ${ibmPlexSans.variable}`}>
+    <html lang="pt-BR" className={`${spaceGrotesk.variable} ${ibmPlexSans.variable}`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
         <script
+          id="reportadesk-theme-script"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
